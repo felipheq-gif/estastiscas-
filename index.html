@@ -6,8 +6,8 @@
 <title>Estatísticas da Pelada</title>
 <meta name="theme-color" content="#16a34a">
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pelada Stats">
@@ -153,11 +153,6 @@ const firebaseConfig = {
   projectId: "estatisticas---futebol",
   appId: "1:1067559562913:web:98641b21b6a44acc254ae0"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-};
 // Banco do app da lista (leitura pública em /pelada)
 const SORTEIO_DB = "https://lista-da-pelada-default-rtdb.firebaseio.com";
 
@@ -184,7 +179,7 @@ $('btnAdminLink').onclick = () => { if (user) signOut(auth); else { $('loginErro
 $('btnLoginCancelar').onclick = () => $('dlgLogin').close();
 $('btnEntrar').onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $('loginEmail').value.trim(), $('loginSenha').value); $('loginSenha').value = ''; $('dlgLogin').close(); }
-  catch (e) { $('loginErro').textContent = 'E-mail ou senha incorretos.'; }
+  catch (e) { $('loginErro').textContent = (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') ? 'E-mail ou senha incorretos.' : 'Erro: ' + e.code; }
 };
 
 // ---------- Leitura em tempo real ----------
