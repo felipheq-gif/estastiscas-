@@ -146,24 +146,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getDatabase, ref, set, push, update, remove, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-// >>> COLE AQUI a config do NOVO projeto Firebase (Configurações do projeto > Seus apps > Web)
-const firebaseConfig = {// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAQIqeVrXlDw0soYIlJDSNNBSXlFNnvtNc",
   authDomain: "estatisticas---futebol.firebaseapp.com",
   databaseURL: "https://estatisticas---futebol-default-rtdb.firebaseio.com",
   projectId: "estatisticas---futebol",
-  storageBucket: "estatisticas---futebol.firebasestorage.app",
-  messagingSenderId: "1067559562913",
-  appId: "1:1067559562913:web:98641b21b6a44acc254ae0",
-  measurementId: "G-7J4BBZ1Z73"
+  appId: "1:1067559562913:web:98641b21b6a44acc254ae0"
 };
 
 // Initialize Firebase
