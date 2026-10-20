@@ -3,7 +3,7 @@
     ".read": true,
     "partidas": {
       "$id": {
-        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'gE2oi0m74nUXdubivJrO1EvWS3e2')",
         ".validate": "newData.hasChildren(['data','a','b','ga','gb','ja','jb','criadoEm']) && newData.child('ja').hasChildren() && newData.child('jb').hasChildren() && newData.child('a').val() !== newData.child('b').val()",
         "data": { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
         "a": { ".validate": "newData.isString() && (newData.val() === 'rosa' || newData.val() === 'verde' || newData.val() === 'azul' || newData.val() === 'vermelho')" },
@@ -18,7 +18,7 @@
     },
     "dias": {
       "$data": {
-        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'gE2oi0m74nUXdubivJrO1EvWS3e2')",
         ".validate": "$data.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && newData.hasChild('equipes')",
         "equipes": {
           "$t": {
@@ -31,7 +31,7 @@
     },
     "apelidos": {
       "$k": {
-        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'gE2oi0m74nUXdubivJrO1EvWS3e2')",
         ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40 && newData.val() !== $k"
       }
     }
