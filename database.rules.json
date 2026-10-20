@@ -1,0 +1,39 @@
+{
+  "rules": {
+    ".read": true,
+    "partidas": {
+      "$id": {
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".validate": "newData.hasChildren(['data','a','b','ga','gb','ja','jb','criadoEm']) && newData.child('ja').hasChildren() && newData.child('jb').hasChildren() && newData.child('a').val() !== newData.child('b').val()",
+        "data": { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
+        "a": { ".validate": "newData.isString() && (newData.val() === 'rosa' || newData.val() === 'verde' || newData.val() === 'azul' || newData.val() === 'vermelho')" },
+        "b": { ".validate": "newData.isString() && (newData.val() === 'rosa' || newData.val() === 'verde' || newData.val() === 'azul' || newData.val() === 'vermelho')" },
+        "ga": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99 && newData.val() % 1 === 0" },
+        "gb": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99 && newData.val() % 1 === 0" },
+        "ja": { "$i": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 25" } },
+        "jb": { "$i": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 25" } },
+        "criadoEm": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+    "dias": {
+      "$data": {
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".validate": "$data.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && newData.hasChild('equipes')",
+        "equipes": {
+          "$t": {
+            ".validate": "($t === 'rosa' || $t === 'verde' || $t === 'azul' || $t === 'vermelho') && newData.hasChildren()",
+            "$i": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 25" }
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "apelidos": {
+      "$k": {
+        ".write": "auth != null && (auth.uid === '4YFzQleMJUQ2i2cGKXuuWmBIKac2' || auth.uid === 'UID_ADMIN_2')",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40 && newData.val() !== $k"
+      }
+    }
+  }
+}
