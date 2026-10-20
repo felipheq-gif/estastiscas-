@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estatísticas da Pelada</title>
+<meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pelada Stats">
+<style>
+:root{--primary:#22c55e;--primary-dark:#16a34a;--danger:#ef4444;--danger-dark:#dc2626;--bg:#f8fafc;--card:#fff;--text:#0f172a}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:var(--bg);color:var(--text);padding:20px;display:flex;justify-content:center}
+.container{width:100%;max-width:450px;background:var(--card);padding:24px;border-radius:16px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}
+h1{font-size:24px;text-align:center;margin-bottom:8px}
+.subtitle{text-align:center;color:#64748b;font-size:14px;margin-bottom:16px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:20px 0 8px;border-bottom:2px solid #e2e8f0;padding-bottom:4px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;outline:none;background:#fff}
+textarea{min-height:90px;resize:vertical}
+button{cursor:pointer;border:none;border-radius:8px;padding:10px 12px;font-weight:bold;font-size:14px}
+button:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn{background:var(--primary);color:#fff;width:100%;margin-top:8px}
+.btn.sec{background:#475569}
+.btn.cinza{background:#e2e8f0;color:var(--text)}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;background:#e2e8f0;color:var(--text)}
+.tabs button.on{background:var(--primary-dark);color:#fff}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;color:#64748b;text-align:center;padding:6px 3px}
+td{padding:8px 3px;text-align:center;border-top:1px solid #e2e8f0}
+th:first-child,td:first-child{text-align:left;padding-left:6px}
+td.forte{font-weight:bold}
+ul{list-style:none}
+li{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f1f5f9;margin-bottom:6px;border-radius:6px;font-size:15px;gap:8px}
+li span{overflow-wrap:anywhere}
+li .acoes{display:flex;gap:4px;flex-shrink:0}
+li .acoes button{background:none;color:#64748b;padding:4px 8px;font-size:13px}
+li .acoes button:hover{background:#e2e8f0}
+.empty{color:#94a3b8;font-style:italic;text-align:center;padding:12px;font-size:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.time-card{border-radius:10px;overflow:hidden;background:#f1f5f9}
+.time-card h3{color:#fff;font-size:14px;padding:8px 10px}
+.time-card ul{padding:6px 8px 2px}
+.time-card li{background:#fff;margin-bottom:4px;padding:6px 8px;font-size:14px}
+.placar{display:grid;grid-template-columns:1fr 64px 20px 64px 1fr;gap:6px;align-items:center;text-align:center}
+.placar input{text-align:center}
+.filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filtros label{font-size:12px;color:#64748b}
+.rodape{text-align:center;margin-top:24px}
+.link{background:none;color:#94a3b8;font-size:12px;text-decoration:underline;font-weight:normal;padding:4px}
+.btn-instalar{background:var(--primary);color:#fff;margin-bottom:12px}
+.dica{color:#64748b;font-size:13px;margin-bottom:12px}
+[hidden]{display:none!important}
+dialog{margin:auto;border:none;border-radius:12px;padding:20px;width:min(92vw,380px);max-height:90vh;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(15,23,42,.5)}
+dialog h3{margin-bottom:12px;font-size:18px}
+dialog input,dialog select,dialog textarea{margin-bottom:8px}
+dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
+.erro{color:var(--danger-dark);font-size:13px;min-height:18px;margin-bottom:8px}
+.dbtn{display:flex;gap:8px}.dbtn button{flex:1}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📊 Estatísticas da Pelada</h1>
+  <div class="subtitle">Toda terça, 4 times, muita resenha</div>
+  <div class="tabs"><button id="tabDia" class="on" type="button">Dia</button><button id="tabRank" type="button">Ranking</button></div>
+
+  <div id="vDia">
+    <input type="date" id="dia" aria-label="Data da pelada">
+    <h2>🏆 Tabela do dia</h2>
+    <div class="scroll"><table id="tbDia"></table></div>
+
+    <h2>🎽 Times do dia</h2>
+    <div id="blocoTimes"></div>
+    <button class="btn sec adm" id="btnTimes" type="button" hidden>📥 Importar / digitar times</button>
+
+    <div class="adm" hidden>
+      <h2 id="tituloForm">➕ Lançar partida</h2>
+      <div class="placar">
+        <select id="selA" aria-label="Time A"></select><input type="number" id="gA" min="0" max="99" inputmode="numeric" placeholder="0" aria-label="Gols do time A">
+        <b>x</b><input type="number" id="gB" min="0" max="99" inputmode="numeric" placeholder="0" aria-label="Gols do time B"><select id="selB" aria-label="Time B"></select>
+      </div>
+      <button class="btn" id="btnSalvar" type="button">Salvar partida</button>
+      <button class="btn cinza" id="btnCancelarEd" type="button" hidden>Cancelar edição</button>
+    </div>
+
+    <h2>📜 Partidas</h2>
+    <ul id="listaPartidas"></ul>
+  </div>
+
+  <div id="vRank" hidden>
+    <h2>📈 Ranking acumulado</h2>
+    <div class="filtros">
+      <div><label for="de">De</label><input type="date" id="de"></div>
+      <div><label for="ate">Até</label><input type="date" id="ate"></div>
+    </div>
+    <button class="btn cinza" id="btnTudo" type="button">Todo o período</button>
+    <div class="scroll" style="margin-top:12px"><table id="tbRank"></table></div>
+    <p class="dica" style="margin-top:8px">Pontos: vitória 3, empate 1, derrota 0. Aproveitamento = pontos ÷ (3 × jogos).</p>
+  </div>
+
+  <div class="rodape">
+    <button class="btn btn-instalar" id="btnInstalar" type="button" hidden>📲 Instalar o app</button>
+    <p class="dica" id="dicaIos" hidden>No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".</p>
+    <div><button class="link adm" id="btnApelidos" type="button" hidden>Apelidos dos jogadores</button></div>
+    <button class="link" id="btnAdminLink" type="button">Área do administrador</button>
+  </div>
+</div>
+
+<dialog id="dlgLogin">
+  <h3>Entrar como administrador</h3>
+  <input type="email" id="loginEmail" placeholder="E-mail" autocomplete="username">
+  <input type="password" id="loginSenha" placeholder="Senha" autocomplete="current-password">
+  <div class="erro" id="loginErro"></div>
+  <div class="dbtn"><button class="btn cinza" id="btnLoginCancelar" type="button">Cancelar</button><button class="btn" id="btnEntrar" type="button">Entrar</button></div>
+</dialog>
+
+<dialog id="dlgTimes">
+  <h3>Times do dia</h3>
+  <label for="selRodada">Sorteio salvo no app da lista</label>
+  <select id="selRodada"><option value="">Buscando…</option></select>
+  <div id="camposTimes"></div>
+  <div class="erro" id="timesErro"></div>
+  <div class="dbtn"><button class="btn cinza" id="btnTimesCancelar" type="button">Cancelar</button><button class="btn" id="btnTimesSalvar" type="button">Salvar times</button></div>
+</dialog>
+
+<dialog id="dlgApelidos">
+  <h3>Apelidos</h3>
+  <p class="dica">O ranking soma o primeiro nome no segundo. As partidas não são alteradas.</p>
+  <ul id="listaApelidos"></ul>
+  <input id="apDe" placeholder="Apelido (ex.: Zé)" maxlength="25">
+  <input id="apPara" placeholder="Nome principal (ex.: José)" maxlength="25">
+  <div class="erro" id="apErro"></div>
+  <div class="dbtn"><button class="btn cinza" id="btnApFechar" type="button">Fechar</button><button class="btn" id="btnApAdd" type="button">Vincular</button></div>
+</dialog>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getDatabase, ref, set, push, update, remove, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+// >>> COLE AQUI a config do NOVO projeto Firebase (Configurações do projeto > Seus apps > Web)
+const firebaseConfig = {// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAQIqeVrXlDw0soYIlJDSNNBSXlFNnvtNc",
+  authDomain: "estatisticas---futebol.firebaseapp.com",
+  databaseURL: "https://estatisticas---futebol-default-rtdb.firebaseio.com",
+  projectId: "estatisticas---futebol",
+  storageBucket: "estatisticas---futebol.firebasestorage.app",
+  messagingSenderId: "1067559562913",
+  appId: "1:1067559562913:web:98641b21b6a44acc254ae0",
+  measurementId: "G-7J4BBZ1Z73"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+};
+// Banco do app da lista (leitura pública em /pelada)
+const SORTEIO_DB = "https://lista-da-pelada-default-rtdb.firebaseio.com";
+
+const EQ = [
+  { id: 'rosa', nome: 'Rosa', cor: '#db2777' }, { id: 'verde', nome: 'Verde', cor: '#15803d' },
+  { id: 'azul', nome: 'Azul', cor: '#2563eb' }, { id: 'vermelho', nome: 'Vermelho', cor: '#dc2626' }
+];
+const db = getDatabase(initializeApp(firebaseConfig));
+const auth = getAuth();
+const $ = (id) => document.getElementById(id);
+const arr = (v) => Object.values(v || {});
+const chave = (n) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+const hojeSP = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const fmtData = (d) => { const [, m, x] = d.split('-'); return x + '/' + m; };
+const eq = (id) => EQ.find((e) => e.id === id);
+function mk(tag, txt, cls) { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; } // textContent: nunca innerHTML
+
+let user = null, partidas = [], dias = {}, apelidos = {}, editId = null, sorteios = null;
+$('dia').value = hojeSP();
+
+// ---------- Auth (só e-mail/senha dos admins; leitura é pública) ----------
+onAuthStateChanged(auth, (u) => { user = u; render(); });
+$('btnAdminLink').onclick = () => { if (user) signOut(auth); else { $('loginErro').textContent = ''; $('dlgLogin').showModal(); } };
+$('btnLoginCancelar').onclick = () => $('dlgLogin').close();
+$('btnEntrar').onclick = async () => {
+  try { await signInWithEmailAndPassword(auth, $('loginEmail').value.trim(), $('loginSenha').value); $('loginSenha').value = ''; $('dlgLogin').close(); }
+  catch (e) { $('loginErro').textContent = 'E-mail ou senha incorretos.'; }
+};
+
+// ---------- Leitura em tempo real ----------
+onValue(ref(db), (s) => {
+  const d = s.val() || {};
+  partidas = Object.entries(d.partidas || {}).map(([id, m]) => ({ id, ...m }))
+    .filter((m) => eq(m.a) && eq(m.b))
+    .sort((x, y) => (x.criadoEm || 0) - (y.criadoEm || 0));
+  dias = d.dias || {};
+  apelidos = d.apelidos || {};
+  render();
+}, (e) => alert('Erro ao ler os dados: ' + e.message));
+
+// ---------- Cálculos (tudo derivado das partidas) ----------
+function resultado(m) { return m.ga > m.gb ? 'v' : m.ga < m.gb ? 'd' : 'e'; }
+
+function tabelaDia(ps) {
+  const t = {}; EQ.forEach((e) => { t[e.id] = { id: e.id, v: 0, e: 0, d: 0, gp: 0, gc: 0 }; });
+  ps.forEach((m) => {
+    const A = t[m.a], B = t[m.b], r = resultado(m);
+    A.gp += m.ga; A.gc += m.gb; B.gp += m.gb; B.gc += m.ga;
+    if (r === 'v') { A.v++; B.d++; } else if (r === 'd') { B.v++; A.d++; } else { A.e++; B.e++; }
+  });
+  return Object.values(t).map((x) => ({ ...x, p: x.v * 3 + x.e, sg: x.gp - x.gc }))
+    .sort((a, b) => b.p - a.p || b.sg - a.sg || b.gp - a.gp || eq(a.id).nome.localeCompare(eq(b.id).nome));
+}
+
+function canon(k) { for (let i = 0; i < 5 && apelidos[k] && apelidos[k] !== k; i++) k = apelidos[k]; return k; }
+
+function ranking(ps) {
+  const exib = new Map(), r = new Map();
+  partidas.forEach((m) => [...arr(m.ja), ...arr(m.jb)].forEach((n) => { const k = chave(n); if (k && !exib.has(k)) exib.set(k, n); }));
+  ps.forEach((m) => {
+    const res = resultado(m);
+    [[m.ja, res], [m.jb, res === 'v' ? 'd' : res === 'd' ? 'v' : 'e']].forEach(([lista, rs]) => {
+      new Set(arr(lista).map((n) => canon(chave(n))).filter(Boolean)).forEach((k) => {
+        if (!r.has(k)) r.set(k, { nome: exib.get(k) || k, j: 0, v: 0, e: 0, d: 0 });
+        const x = r.get(k); x.j++; x[rs]++;
+      });
+    });
+  });
+  return [...r.values()].map((x) => ({ ...x, p: x.v * 3 + x.e, ap: x.j ? (x.v * 3 + x.e) / (3 * x.j) : 0 }))
+    .sort((a, b) => b.p - a.p || b.ap - a.ap || b.v - a.v || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+// ---------- Tela ----------
+function tabela(t, heads, rows) {
+  t.replaceChildren();
+  const tr = mk('tr'); heads.forEach((h) => tr.append(mk('th', h))); t.append(tr);
+  rows.forEach((cels) => { const l = mk('tr'); cels.forEach((c) => l.append(c instanceof Node ? c : mk('td', c))); t.append(l); });
+}
+function celTime(id) { const e = eq(id), td = mk('td', e.nome, 'forte'); td.style.borderLeft = '6px solid ' + e.cor; td.style.paddingLeft = '8px'; return td; }
+function rosterDe(d) { const q = (dias[d] && dias[d].equipes) || {}, o = {}; EQ.forEach((e) => { o[e.id] = arr(q[e.id]); }); return o; }
+
+function render() {
+  const adm = !!user, dia = $('dia').value;
+  document.querySelectorAll('.adm').forEach((e) => { e.hidden = !adm; });
+  $('btnAdminLink').textContent = adm ? 'Sair do modo administrador' : 'Área do administrador';
+
+  const ps = partidas.filter((m) => m.data === dia);
+  tabela($('tbDia'), ['Time', 'Pts', 'V', 'E', 'D', 'GP', 'GC', 'SG'],
+    tabelaDia(ps).map((x) => [celTime(x.id), mk('td', x.p, 'forte'), x.v, x.e, x.d, x.gp, x.gc, (x.sg > 0 ? '+' : '') + x.sg]));
+
+  const bloco = $('blocoTimes'); bloco.replaceChildren();
+  const ro = rosterDe(dia);
+  if (EQ.every((e) => ro[e.id].length === 0)) bloco.append(mk('div', 'Times deste dia ainda não cadastrados.', 'empty'));
+  else {
+    const g = mk('div', null, 'grid2');
+    EQ.forEach((e) => {
+      const c = mk('div', null, 'time-card'), h = mk('h3', `Time ${e.nome} (${ro[e.id].length})`), ul = mk('ul');
+      h.style.background = e.cor; ro[e.id].forEach((n) => { const li = mk('li'); li.append(mk('span', n)); ul.append(li); });
+      c.append(h, ul); g.append(c);
+    });
+    bloco.append(g);
+  }
+
+  const ul = $('listaPartidas'); ul.replaceChildren();
+  if (!ps.length) ul.append(mk('div', 'Nenhuma partida neste dia.', 'empty'));
+  [...ps].reverse().forEach((m) => {
+    const li = mk('li'); li.append(mk('span', `${eq(m.a).nome} ${m.ga} x ${m.gb} ${eq(m.b).nome}`));
+    if (adm) {
+      const ac = mk('div', null, 'acoes'), be = mk('button', 'Editar'), bd = mk('button', 'Apagar');
+      be.type = bd.type = 'button'; be.onclick = () => iniciarEdicao(m); bd.onclick = () => apagarPartida(m);
+      ac.append(be, bd); li.append(ac);
+    }
+    ul.append(li);
+  });
+  renderRank();
+}
+
+function renderRank() {
+  const de = $('de').value, ate = $('ate').value;
+  const ps = partidas.filter((m) => (!de || m.data >= de) && (!ate || m.data <= ate));
+  const rk = ranking(ps);
+  if (!rk.length) { $('tbRank').replaceChildren(mk('caption', 'Nenhuma partida neste período.', 'empty')); return; }
+  tabela($('tbRank'), ['Jogador', 'J', 'V', 'E', 'D', 'Pts', 'Aprov.'],
+    rk.map((x, i) => [mk('td', `${i + 1}. ${x.nome}`), x.j, x.v, x.e, x.d, mk('td', x.p, 'forte'), Math.round(x.ap * 100) + '%']));
+}
+
+$('dia').onchange = () => { cancelarEdicao(); render(); };
+$('de').onchange = $('ate').onchange = renderRank;
+$('btnTudo').onclick = () => { $('de').value = ''; $('ate').value = ''; renderRank(); };
+$('tabDia').onclick = () => { $('vDia').hidden = false; $('vRank').hidden = true; $('tabDia').className = 'on'; $('tabRank').className = ''; };
+$('tabRank').onclick = () => { $('vDia').hidden = true; $('vRank').hidden = false; $('tabRank').className = 'on'; $('tabDia').className = ''; };
+
+// ---------- Partidas (cada uma é um registro separado) ----------
+EQ.forEach((e) => { [$('selA'), $('selB')].forEach((s) => s.append(new Option(e.nome, e.id))); });
+$('selB').value = 'verde';
+
+function iniciarEdicao(m) {
+  editId = m.id; $('selA').value = m.a; $('selB').value = m.b; $('gA').value = m.ga; $('gB').value = m.gb;
+  $('tituloForm').textContent = '✏️ Editar partida'; $('btnSalvar').textContent = 'Salvar alteração'; $('btnCancelarEd').hidden = false;
+  $('selA').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function cancelarEdicao() {
+  editId = null; $('gA').value = ''; $('gB').value = '';
+  $('tituloForm').textContent = '➕ Lançar partida'; $('btnSalvar').textContent = 'Salvar partida'; $('btnCancelarEd').hidden = true;
+}
+$('btnCancelarEd').onclick = cancelarEdicao;
+
+$('btnSalvar').onclick = async () => {
+  const a = $('selA').value, b = $('selB').value, ga = parseInt($('gA').value, 10), gb = parseInt($('gB').value, 10);
+  if (a === b) return alert('Escolha dois times diferentes.');
+  if (!(ga >= 0 && gb >= 0 && ga <= 99 && gb <= 99)) return alert('Informe o placar (0 a 99).');
+  try {
+    if (editId) {
+      const m = partidas.find((x) => x.id === editId), upd = { a, b, ga, gb };
+      if (m.a !== a || m.b !== b) { // trocou os times: refaz a lista de jogadores a partir do dia da partida
+        const r = rosterDe(m.data);
+        if (!r[a].length || !r[b].length) return alert('Este dia não tem os times cadastrados para refazer a lista de jogadores.');
+        upd.ja = r[a]; upd.jb = r[b];
+      }
+      await update(ref(db, 'partidas/' + editId), upd);
+    } else {
+      const dia = $('dia').value, r = rosterDe(dia);
+      if (!dia) return alert('Escolha a data.');
+      if (!r[a].length || !r[b].length) return alert('Cadastre os times do dia primeiro (botão "Importar / digitar times").');
+      await push(ref(db, 'partidas'), { data: dia, a, b, ga, gb, ja: r[a], jb: r[b], criadoEm: serverTimestamp() }); // jogadores de cada time ficam gravados na partida
+    }
+    cancelarEdicao();
+  } catch (e) { alert('Não foi possível salvar: ' + e.message); }
+};
+function apagarPartida(m) {
+  if (!confirm(`Apagar ${eq(m.a).nome} ${m.ga} x ${m.gb} ${eq(m.b).nome}?`)) return;
+  remove(ref(db, 'partidas/' + m.id)).then(() => { if (editId === m.id) cancelarEdicao(); }).catch((e) => alert('Erro ao apagar: ' + e.message));
+}
+
+// ---------- Times do dia: importar do sorteio ou digitar ----------
+EQ.forEach((e) => {
+  const l = mk('label', `Time ${e.nome} (um nome por linha)`), t = mk('textarea'); t.id = 'ta_' + e.id; l.htmlFor = t.id;
+  $('camposTimes').append(l, t);
+});
+function preencherTimes(eqs) { EQ.forEach((e) => { $('ta_' + e.id).value = arr((eqs || {})[e.id]).join('\n'); }); }
+
+$('btnTimes').onclick = async () => {
+  $('timesErro').textContent = ''; preencherTimes((dias[$('dia').value] || {}).equipes);
+  $('selRodada').replaceChildren(new Option('Buscando…', '')); $('dlgTimes').showModal();
+  try {
+    const r = await fetch(SORTEIO_DB + '/pelada/historico.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    sorteios = (await r.json()) || {};
+    const datas = Object.keys(sorteios).sort().reverse();
+    $('selRodada').replaceChildren(new Option(datas.length ? 'Escolha um sorteio…' : 'Nenhum sorteio salvo', ''));
+    datas.forEach((d) => $('selRodada').append(new Option('Sorteio de ' + fmtData(d), d)));
+    if (sorteios[$('dia').value]) { $('selRodada').value = $('dia').value; preencherTimes(sorteios[$('dia').value].equipes); }
+  } catch (e) {
+    $('selRodada').replaceChildren(new Option('Sem acesso ao sorteio', ''));
+    $('timesErro').textContent = 'Não consegui buscar o sorteio. Digite os times manualmente.';
+  }
+};
+$('selRodada').onchange = () => { const s = sorteios && sorteios[$('selRodada').value]; if (s) preencherTimes(s.equipes); };
+$('btnTimesCancelar').onclick = () => $('dlgTimes').close();
+$('btnTimesSalvar').onclick = async () => {
+  const equipes = {}, vistos = new Set();
+  for (const e of EQ) {
+    const nomes = [];
+    for (const l of $('ta_' + e.id).value.split('\n')) {
+      const n = l.trim().replace(/\s+/g, ' ').slice(0, 25), k = chave(n);
+      if (!k) continue;
+      if (vistos.has(k)) { $('timesErro').textContent = `"${n}" aparece mais de uma vez.`; return; }
+      vistos.add(k); nomes.push(n);
+    }
+    if (nomes.length) equipes[e.id] = nomes;
+  }
+  if (Object.keys(equipes).length < 2) { $('timesErro').textContent = 'Informe pelo menos dois times.'; return; }
+  try { await set(ref(db, 'dias/' + $('dia').value), { equipes }); $('dlgTimes').close(); }
+  catch (e) { $('timesErro').textContent = 'Erro ao salvar: ' + e.message; }
+};
+
+// ---------- Apelidos (aplicados só no ranking) ----------
+function renderApelidos() {
+  const ul = $('listaApelidos'); ul.replaceChildren();
+  const ent = Object.entries(apelidos);
+  if (!ent.length) ul.append(mk('div', 'Nenhum apelido vinculado.', 'empty'));
+  ent.forEach(([de, para]) => {
+    const li = mk('li'); li.append(mk('span', `${de} → ${para}`));
+    const ac = mk('div', null, 'acoes'), b = mk('button', 'Remover'); b.type = 'button';
+    b.onclick = () => remove(ref(db, 'apelidos/' + de)).catch((e) => alert('Erro: ' + e.message));
+    ac.append(b); li.append(ac); ul.append(li);
+  });
+}
+$('btnApelidos').onclick = () => { $('apErro').textContent = ''; renderApelidos(); $('dlgApelidos').showModal(); };
+$('btnApFechar').onclick = () => $('dlgApelidos').close();
+$('btnApAdd').onclick = async () => {
+  const de = chave($('apDe').value), para = chave($('apPara').value);
+  if (!de || !para || de === para) { $('apErro').textContent = 'Informe dois nomes diferentes.'; return; }
+  if (canon(para) === de) { $('apErro').textContent = 'Isso criaria um vínculo circular.'; return; }
+  try { await set(ref(db, 'apelidos/' + de), para); $('apDe').value = $('apPara').value = ''; $('apErro').textContent = ''; setTimeout(renderApelidos, 300); }
+  catch (e) { $('apErro').textContent = 'Erro: ' + e.message; }
+};
+onValue(ref(db, 'apelidos'), () => { if ($('dlgApelidos').open) renderApelidos(); });
+</script>
+
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+const jaInstalado = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let evInstalar = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); evInstalar = e; if (!jaInstalado) document.getElementById('btnInstalar').hidden = false; });
+document.getElementById('btnInstalar').onclick = async () => { if (!evInstalar) return; evInstalar.prompt(); await evInstalar.userChoice; evInstalar = null; document.getElementById('btnInstalar').hidden = true; };
+addEventListener('appinstalled', () => { document.getElementById('btnInstalar').hidden = true; });
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !jaInstalado) document.getElementById('dicaIos').hidden = false;
+</script>
+</body>
+</html>
