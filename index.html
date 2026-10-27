@@ -70,7 +70,7 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
 <div class="container">
   <h1>📊 Estatísticas da Pelada</h1>
   <div class="subtitle">Toda terça, 4 times, muita resenha</div>
-  <div class="tabs"><button id="tabDia" class="on" type="button">Dia</button><button id="tabRank" type="button">Ranking</button></div>
+  <div class="tabs"><button id="tabDia" class="on" type="button">Dia</button><button id="tabRank" type="button">Ranking</button><button id="tabAus" class="adm" type="button" hidden>Ausências</button></div>
 
   <div id="vDia">
     <input type="date" id="dia" aria-label="Data da pelada">
@@ -104,6 +104,12 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
     <button class="btn cinza" id="btnTudo" type="button">Todo o período</button>
     <div class="scroll" style="margin-top:12px"><table id="tbRank"></table></div>
     <p class="dica" style="margin-top:8px">Cada vitória conta 1. Ordem: vitórias, depois aproveitamento (vitórias ÷ jogos).</p>
+  </div>
+
+  <div id="vAus" hidden>
+    <h2>🕒 Terças sem ir</h2>
+    <div class="scroll"><table id="tbAus"></table></div>
+    <p class="dica" style="margin-top:8px">Conta as terças com pelada registrada desde a última vez que o jogador apareceu (em um time ou em uma partida). 0 = foi na última.</p>
   </div>
 
   <div class="rodape">
@@ -267,7 +273,8 @@ function render() {
     }
     ul.append(li);
   });
-  renderRank();
+  renderRank(); renderAus();
+  if (!adm && !$('vAus').hidden) mostrar('vDia');
 }
 
 function renderRank() {
@@ -279,11 +286,30 @@ function renderRank() {
     rk.map((x, i) => [mk('td', `${i + 1}. ${x.nome}`), x.j, mk('td', x.v, 'forte'), x.e, x.d, Math.round(x.ap * 100) + '%']));
 }
 
+function renderAus() {
+  if (!user) return;
+  const datas = new Set(Object.keys(dias)); partidas.forEach((m) => datas.add(m.data));
+  const ord = [...datas].sort(), exib = new Map(), ultima = new Map();
+  const nomesDe = (d) => [...Object.values((dias[d] && dias[d].equipes) || {}).flatMap(arr), ...partidas.filter((m) => m.data === d).flatMap((m) => [...arr(m.ja), ...arr(m.jb)])];
+  ord.forEach((d) => nomesDe(d).forEach((n) => {
+    const k0 = chave(n), k = canon(k0); if (!k) return;
+    if (!exib.has(k) || k0 === k) exib.set(k, n);
+    ultima.set(k, d); // datas em ordem crescente: fica a mais recente
+  }));
+  const lista = [...ultima.entries()].map(([k, d]) => ({ nome: exib.get(k) || k, d, sem: ord.filter((x) => x > d).length }))
+    .sort((a, b) => b.sem - a.sem || a.nome.localeCompare(b.nome, 'pt-BR'));
+  if (!lista.length) { $('tbAus').replaceChildren(mk('caption', 'Sem dados ainda.', 'empty')); return; }
+  tabela($('tbAus'), ['Jogador', 'Última vez', 'Terças sem ir'], lista.map((x) => [x.nome, fmtData(x.d), mk('td', x.sem, 'forte')]));
+}
+
 $('dia').onchange = () => { cancelarEdicao(); render(); };
 $('de').onchange = $('ate').onchange = renderRank;
 $('btnTudo').onclick = () => { $('de').value = ''; $('ate').value = ''; renderRank(); };
-$('tabDia').onclick = () => { $('vDia').hidden = false; $('vRank').hidden = true; $('tabDia').className = 'on'; $('tabRank').className = ''; };
-$('tabRank').onclick = () => { $('vDia').hidden = true; $('vRank').hidden = false; $('tabRank').className = 'on'; $('tabDia').className = ''; };
+const ABAS = { vDia: 'tabDia', vRank: 'tabRank', vAus: 'tabAus' };
+function mostrar(v) { Object.entries(ABAS).forEach(([vv, t]) => { $(vv).hidden = vv !== v; $(t).className = vv === v ? 'on' : ''; }); }
+$('tabDia').onclick = () => mostrar('vDia');
+$('tabRank').onclick = () => mostrar('vRank');
+$('tabAus').onclick = () => mostrar('vAus');
 
 // ---------- Partidas (cada uma é um registro separado) ----------
 EQ.forEach((e) => { [$('selA'), $('selB')].forEach((s) => s.append(new Option(e.nome, e.id))); });
