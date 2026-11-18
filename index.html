@@ -80,6 +80,7 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
     <h2>🎽 Times do dia</h2>
     <div id="blocoTimes"></div>
     <button class="btn sec adm" id="btnTimes" type="button" hidden>📥 Importar / digitar times</button>
+    <button class="btn cinza adm" id="btnAddJog" type="button" hidden>➕ Adicionar jogador a um time</button>
 
     <div class="adm" hidden>
       <h2 id="tituloForm">➕ Lançar partida</h2>
@@ -87,6 +88,7 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
         <select id="selA" aria-label="Time A"></select><input type="number" id="gA" min="0" max="99" inputmode="numeric" placeholder="0" aria-label="Gols do time A">
         <b>x</b><input type="number" id="gB" min="0" max="99" inputmode="numeric" placeholder="0" aria-label="Gols do time B"><select id="selB" aria-label="Time B"></select>
       </div>
+      <label id="lblRefazer" hidden style="margin-top:8px;font-size:13px;display:block"><input type="checkbox" id="chkRefazer" style="width:auto;margin-right:6px">Refazer a lista de jogadores desta partida com os times atuais do dia</label>
       <button class="btn" id="btnSalvar" type="button">Salvar partida</button>
       <button class="btn cinza" id="btnCancelarEd" type="button" hidden>Cancelar edição</button>
     </div>
@@ -135,6 +137,17 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
   <div id="camposTimes"></div>
   <div class="erro" id="timesErro"></div>
   <div class="dbtn"><button class="btn cinza" id="btnTimesCancelar" type="button">Cancelar</button><button class="btn" id="btnTimesSalvar" type="button">Salvar times</button></div>
+</dialog>
+
+<dialog id="dlgJog">
+  <h3 id="jogTitulo">Jogador</h3>
+  <p class="dica" id="jogInfo"></p>
+  <div id="jogNomeBox"><label for="jogNome">Nome</label><input id="jogNome" maxlength="25" autocomplete="off"></div>
+  <label for="jogTime">Time</label><select id="jogTime"></select>
+  <div class="erro" id="jogErro"></div>
+  <button class="btn" id="btnJogSalvar" type="button">Salvar</button>
+  <button class="btn sec" id="btnJogRemover" type="button">Remover do time</button>
+  <button class="btn cinza" id="btnJogFechar" type="button">Cancelar</button>
 </dialog>
 
 <dialog id="dlgApelidos">
@@ -256,7 +269,12 @@ function render() {
     const g = mk('div', null, 'grid2');
     EQ.forEach((e) => {
       const c = mk('div', null, 'time-card'), h = mk('h3', `Time ${e.nome} (${ro[e.id].length})`), ul = mk('ul');
-      h.style.background = e.cor; ro[e.id].forEach((n) => { const li = mk('li'); li.append(mk('span', n)); ul.append(li); });
+      h.style.background = e.cor;
+      ro[e.id].forEach((n) => {
+        const li = mk('li'); li.append(mk('span', n));
+        if (adm) { const b = mk('button', '✎', 'link'); b.type = 'button'; b.title = 'Remover, mover ou substituir'; b.setAttribute('aria-label', 'Editar ' + n); b.onclick = () => abrirJogador(e.id, n); li.append(b); }
+        ul.append(li);
+      });
       c.append(h, ul); g.append(c);
     });
     bloco.append(g);
@@ -317,12 +335,12 @@ $('selB').value = 'verde';
 
 function iniciarEdicao(m) {
   editId = m.id; $('selA').value = m.a; $('selB').value = m.b; $('gA').value = m.ga; $('gB').value = m.gb;
-  $('tituloForm').textContent = '✏️ Editar partida'; $('btnSalvar').textContent = 'Salvar alteração'; $('btnCancelarEd').hidden = false;
+  $('tituloForm').textContent = '✏️ Editar partida'; $('btnSalvar').textContent = 'Salvar alteração'; $('btnCancelarEd').hidden = false; $('lblRefazer').hidden = false; $('chkRefazer').checked = false;
   $('selA').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 function cancelarEdicao() {
   editId = null; $('gA').value = ''; $('gB').value = '';
-  $('tituloForm').textContent = '➕ Lançar partida'; $('btnSalvar').textContent = 'Salvar partida'; $('btnCancelarEd').hidden = true;
+  $('tituloForm').textContent = '➕ Lançar partida'; $('btnSalvar').textContent = 'Salvar partida'; $('btnCancelarEd').hidden = true; $('lblRefazer').hidden = true; $('chkRefazer').checked = false;
 }
 $('btnCancelarEd').onclick = cancelarEdicao;
 
@@ -333,7 +351,7 @@ $('btnSalvar').onclick = async () => {
   try {
     if (editId) {
       const m = partidas.find((x) => x.id === editId), upd = { a, b, ga, gb };
-      if (m.a !== a || m.b !== b) { // trocou os times: refaz a lista de jogadores a partir do dia da partida
+      if (m.a !== a || m.b !== b || $('chkRefazer').checked) { // trocou os times: refaz a lista de jogadores a partir do dia da partida
         const r = rosterDe(m.data);
         if (!r[a].length || !r[b].length) return alert('Este dia não tem os times cadastrados para refazer a lista de jogadores.');
         upd.ja = r[a]; upd.jb = r[b];
@@ -393,6 +411,45 @@ $('btnTimesSalvar').onclick = async () => {
   if (Object.keys(equipes).length < 2) { $('timesErro').textContent = 'Informe pelo menos dois times.'; return; }
   try { await set(ref(db, 'dias/' + $('dia').value), { equipes }); $('dlgTimes').close(); }
   catch (e) { $('timesErro').textContent = 'Erro ao salvar: ' + e.message; }
+};
+
+// ---------- Editar elenco do dia (só vale para partidas lançadas DEPOIS) ----------
+let jogEdit = null; // { time, nome } ao editar; null ao adicionar
+EQ.forEach((e) => $('jogTime').append(new Option('Time ' + e.nome, e.id)));
+function abrirJogador(time, nome) {
+  jogEdit = nome == null ? null : { time, nome };
+  $('jogTitulo').textContent = jogEdit ? nome : 'Adicionar jogador';
+  $('jogInfo').textContent = jogEdit
+    ? 'Troque o nome para substituir, escolha outro time para mover, ou remova. Vale só para as próximas partidas; as já lançadas não mudam.'
+    : 'Entra no time escolhido a partir das próximas partidas.';
+  $('jogNome').value = nome || ''; $('jogTime').value = time || 'rosa'; $('jogErro').textContent = '';
+  $('btnJogRemover').hidden = !jogEdit; $('dlgJog').showModal();
+}
+async function gravarElenco(r, tocados) {
+  const dia = $('dia').value, mud = {};
+  tocados.forEach((t) => { mud[t] = r[t].length ? r[t] : null; });
+  if (EQ.every((e) => !r[e.id].length)) throw new Error('O dia ficaria sem nenhum jogador.');
+  await update(ref(db, 'dias/' + dia + '/equipes'), mud); // só os times alterados, nunca o dia inteiro
+}
+$('btnAddJog').onclick = () => abrirJogador('rosa', null);
+$('btnJogFechar').onclick = () => $('dlgJog').close();
+$('btnJogSalvar').onclick = async () => {
+  const dia = $('dia').value, r = rosterDe(dia);
+  const nome = $('jogNome').value.trim().replace(/\s+/g, ' ').slice(0, 25), k = chave(nome), novo = $('jogTime').value;
+  if (!k) { $('jogErro').textContent = 'Digite um nome.'; return; }
+  const tocados = new Set([novo]);
+  if (jogEdit) { r[jogEdit.time] = r[jogEdit.time].filter((n) => n !== jogEdit.nome); tocados.add(jogEdit.time); }
+  if (EQ.some((e) => r[e.id].some((n) => chave(n) === k))) { $('jogErro').textContent = 'Esse jogador já está em um time deste dia.'; return; }
+  r[novo].push(nome);
+  try { await gravarElenco(r, tocados); $('dlgJog').close(); }
+  catch (e) { $('jogErro').textContent = 'Erro: ' + e.message; }
+};
+$('btnJogRemover').onclick = async () => {
+  if (!jogEdit || !confirm(`Remover ${jogEdit.nome} do time? As partidas já lançadas continuam como estão.`)) return;
+  const r = rosterDe($('dia').value);
+  r[jogEdit.time] = r[jogEdit.time].filter((n) => n !== jogEdit.nome);
+  try { await gravarElenco(r, [jogEdit.time]); $('dlgJog').close(); }
+  catch (e) { $('jogErro').textContent = 'Erro: ' + e.message; }
 };
 
 // ---------- Apelidos (aplicados só no ranking) ----------
