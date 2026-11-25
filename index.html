@@ -39,6 +39,10 @@ td.forte{font-weight:bold}
 ul{list-style:none}
 li{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f1f5f9;margin-bottom:6px;border-radius:6px;font-size:15px;gap:8px}
 li span{overflow-wrap:anywhere}
+li.partida{flex-wrap:wrap}
+.pres{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:6px;border-top:1px solid #e2e8f0}
+.pres h4{font-size:12px;color:#fff;padding:4px 8px;border-radius:6px;margin-bottom:4px}
+.pres div div{font-size:13px;padding:2px 4px;overflow-wrap:anywhere}
 li .acoes{display:flex;gap:4px;flex-shrink:0}
 li .acoes button{background:none;color:#64748b;padding:4px 8px;font-size:13px}
 li .acoes button:hover{background:#e2e8f0}
@@ -189,7 +193,7 @@ const fmtData = (d) => { const [, m, x] = d.split('-'); return x + '/' + m; };
 const eq = (id) => EQ.find((e) => e.id === id);
 function mk(tag, txt, cls) { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; } // textContent: nunca innerHTML
 
-let user = null, partidas = [], dias = {}, apelidos = {}, editId = null, sorteios = null;
+let verPres = new Set(), user = null, partidas = [], dias = {}, apelidos = {}, editId = null, sorteios = null;
 $('dia').value = hojeSP();
 
 // ---------- Auth (só e-mail/senha dos admins; leitura é pública) ----------
@@ -283,11 +287,21 @@ function render() {
   const ul = $('listaPartidas'); ul.replaceChildren();
   if (!ps.length) ul.append(mk('div', 'Nenhuma partida neste dia.', 'empty'));
   [...ps].reverse().forEach((m) => {
-    const li = mk('li'); li.append(mk('span', `${eq(m.a).nome} ${m.ga} x ${m.gb} ${eq(m.b).nome}`));
+    const li = mk('li', null, 'partida'); li.append(mk('span', `${eq(m.a).nome} ${m.ga} x ${m.gb} ${eq(m.b).nome}`));
     if (adm) {
-      const ac = mk('div', null, 'acoes'), be = mk('button', 'Editar'), bd = mk('button', 'Apagar');
-      be.type = bd.type = 'button'; be.onclick = () => iniciarEdicao(m); bd.onclick = () => apagarPartida(m);
-      ac.append(be, bd); li.append(ac);
+      const ac = mk('div', null, 'acoes'), bp = mk('button', '👥'), be = mk('button', 'Editar'), bd = mk('button', 'Apagar');
+      bp.type = be.type = bd.type = 'button'; bp.title = 'Ver quem jogou'; bp.setAttribute('aria-label', 'Ver quem jogou');
+      bp.onclick = () => { verPres.has(m.id) ? verPres.delete(m.id) : verPres.add(m.id); render(); };
+      be.onclick = () => iniciarEdicao(m); bd.onclick = () => apagarPartida(m);
+      ac.append(bp, be, bd); li.append(ac);
+      if (verPres.has(m.id)) {
+        const box = mk('div', null, 'pres');
+        [[m.a, m.ja], [m.b, m.jb]].forEach(([t, lista]) => {
+          const col = mk('div'), h = mk('h4', `${eq(t).nome} (${arr(lista).length})`); h.style.background = eq(t).cor;
+          col.append(h); arr(lista).forEach((n) => col.append(mk('div', n))); box.append(col);
+        });
+        li.append(box);
+      }
     }
     ul.append(li);
   });
