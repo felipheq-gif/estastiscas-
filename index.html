@@ -41,6 +41,8 @@ li{display:flex;justify-content:space-between;align-items:center;padding:10px 12
 li span{overflow-wrap:anywhere}
 li.partida{flex-wrap:wrap}
 .pres{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:6px;border-top:1px solid #e2e8f0}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.prow button{padding:0 6px;font-size:14px}
 .pres h4{font-size:12px;color:#fff;padding:4px 8px;border-radius:6px;margin-bottom:4px}
 .pres div div{font-size:13px;padding:2px 4px;overflow-wrap:anywhere}
 li .acoes{display:flex;gap:4px;flex-shrink:0}
@@ -150,6 +152,7 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
   <label for="jogTime">Time</label><select id="jogTime"></select>
   <div class="erro" id="jogErro"></div>
   <button class="btn" id="btnJogSalvar" type="button">Salvar</button>
+  <button class="btn sec" id="btnJogRenomear" type="button">Corrigir nome em todo o dia (inclui partidas já lançadas)</button>
   <button class="btn sec" id="btnJogRemover" type="button">Remover do time</button>
   <button class="btn cinza" id="btnJogFechar" type="button">Cancelar</button>
 </dialog>
@@ -298,7 +301,17 @@ function render() {
         const box = mk('div', null, 'pres');
         [[m.a, m.ja], [m.b, m.jb]].forEach(([t, lista]) => {
           const col = mk('div'), h = mk('h4', `${eq(t).nome} (${arr(lista).length})`); h.style.background = eq(t).cor;
-          col.append(h); arr(lista).forEach((n) => col.append(mk('div', n))); box.append(col);
+          col.append(h);
+          const lado = t === m.a && lista === m.ja ? 'ja' : 'jb';
+          arr(lista).forEach((n, i) => {
+            const row = mk('div', null, 'prow'); row.append(mk('span', n));
+            const br = mk('button', '✎', 'link'), bx = mk('button', '✕', 'link');
+            br.type = bx.type = 'button'; br.title = 'Renomear nesta partida'; bx.title = 'Tirar desta partida';
+            br.setAttribute('aria-label', 'Renomear ' + n + ' nesta partida'); bx.setAttribute('aria-label', 'Tirar ' + n + ' desta partida');
+            br.onclick = () => renomearNaPartida(m, lado, i); bx.onclick = () => tirarDaPartida(m, lado, i);
+            row.append(br, bx); col.append(row);
+          });
+          box.append(col);
         });
         li.append(box);
       }
@@ -380,6 +393,21 @@ $('btnSalvar').onclick = async () => {
     cancelarEdicao();
   } catch (e) { alert('Não foi possível salvar: ' + e.message); }
 };
+function tirarDaPartida(m, lado, i) {
+  const lista = arr(m[lado]), nome = lista[i];
+  if (lista.length <= 1) return alert('O time precisa ter pelo menos um jogador na partida. Apague a partida se ela não valeu.');
+  if (!confirm(`Tirar ${nome} só desta partida? Ele deixa de contar nela (jogos, V, E, D).`)) return;
+  update(ref(db, 'partidas/' + m.id), { [lado]: lista.filter((_, j) => j !== i) }).catch((e) => alert('Erro: ' + e.message));
+}
+function renomearNaPartida(m, lado, i) {
+  const lista = arr(m[lado]), antigo = lista[i];
+  const novo = (prompt(`Novo nome para "${antigo}" só nesta partida:`, antigo) || '').trim().replace(/\s+/g, ' ').slice(0, 25);
+  if (!novo || novo === antigo) return;
+  const k = chave(novo);
+  if (!k) return alert('Nome inválido.');
+  if ([...arr(m.ja), ...arr(m.jb)].some((n, j) => chave(n) === k && n !== antigo)) return alert('Já existe esse nome nesta partida.');
+  update(ref(db, 'partidas/' + m.id), { [lado]: lista.map((n, j) => j === i ? novo : n) }).catch((e) => alert('Erro: ' + e.message));
+}
 function apagarPartida(m) {
   if (!confirm(`Apagar ${eq(m.a).nome} ${m.ga} x ${m.gb} ${eq(m.b).nome}?`)) return;
   remove(ref(db, 'partidas/' + m.id)).then(() => { if (editId === m.id) cancelarEdicao(); }).catch((e) => alert('Erro ao apagar: ' + e.message));
@@ -437,7 +465,7 @@ function abrirJogador(time, nome) {
     ? 'Troque o nome para substituir, escolha outro time para mover, ou remova. Vale só para as próximas partidas; as já lançadas não mudam.'
     : 'Entra no time escolhido a partir das próximas partidas.';
   $('jogNome').value = nome || ''; $('jogTime').value = time || 'rosa'; $('jogErro').textContent = '';
-  $('btnJogRemover').hidden = !jogEdit; $('dlgJog').showModal();
+  $('btnJogRemover').hidden = $('btnJogRenomear').hidden = !jogEdit; $('dlgJog').showModal();
 }
 async function gravarElenco(r, tocados) {
   const dia = $('dia').value, mud = {};
@@ -456,6 +484,25 @@ $('btnJogSalvar').onclick = async () => {
   if (EQ.some((e) => r[e.id].some((n) => chave(n) === k))) { $('jogErro').textContent = 'Esse jogador já está em um time deste dia.'; return; }
   r[novo].push(nome);
   try { await gravarElenco(r, tocados); $('dlgJog').close(); }
+  catch (e) { $('jogErro').textContent = 'Erro: ' + e.message; }
+};
+$('btnJogRenomear').onclick = async () => {
+  if (!jogEdit) return;
+  const dia = $('dia').value, r = rosterDe(dia), time = jogEdit.time, antigo = jogEdit.nome;
+  const novo = $('jogNome').value.trim().replace(/\s+/g, ' ').slice(0, 25), k = chave(novo);
+  if (!k) { $('jogErro').textContent = 'Digite o nome correto.'; return; }
+  if (novo === antigo) { $('jogErro').textContent = 'Troque o nome acima antes de corrigir.'; return; }
+  if (EQ.some((e) => r[e.id].some((n) => n !== antigo && chave(n) === k))) { $('jogErro').textContent = 'Esse nome já existe em um time deste dia.'; return; }
+  const ren = (l) => arr(l).map((n) => n === antigo ? novo : n);
+  const mud = { ['dias/' + dia + '/equipes/' + time]: r[time].map((n) => n === antigo ? novo : n) };
+  let afetadas = 0;
+  partidas.filter((m) => m.data === dia).forEach((m) => {
+    [['a', 'ja'], ['b', 'jb']].forEach(([t, lado]) => {
+      if (m[t] === time && arr(m[lado]).includes(antigo)) { mud['partidas/' + m.id + '/' + lado] = ren(m[lado]); afetadas++; }
+    });
+  });
+  if (!confirm(`Trocar "${antigo}" por "${novo}" no Time ${eq(time).nome} e em ${afetadas} partida(s) deste dia?`)) return;
+  try { await update(ref(db), mud); $('dlgJog').close(); }
   catch (e) { $('jogErro').textContent = 'Erro: ' + e.message; }
 };
 $('btnJogRemover').onclick = async () => {
