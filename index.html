@@ -117,7 +117,7 @@ dialog label{font-size:13px;font-weight:bold;display:block;margin-bottom:2px}
   <div id="vAus" hidden>
     <h2>🕒 Terças sem ir</h2>
     <div class="scroll"><table id="tbAus"></table></div>
-    <p class="dica" style="margin-top:8px">Conta as terças com pelada registrada desde a última vez que o jogador apareceu (em um time ou em uma partida). 0 = foi na última.</p>
+    <p class="dica" style="margin-top:8px">Conta as terças com pelada registrada desde a última vez que o jogador apareceu (jogou pelo menos uma partida). 0 = foi na última.</p>
   </div>
 
   <div class="rodape">
@@ -333,9 +333,9 @@ function renderRank() {
 
 function renderAus() {
   if (!user) return;
-  const datas = new Set(Object.keys(dias)); partidas.forEach((m) => datas.add(m.data));
+  const datas = new Set(partidas.map((m) => m.data)); // só contam dias com partida lançada
   const ord = [...datas].sort(), exib = new Map(), ultima = new Map();
-  const nomesDe = (d) => [...Object.values((dias[d] && dias[d].equipes) || {}).flatMap(arr), ...partidas.filter((m) => m.data === d).flatMap((m) => [...arr(m.ja), ...arr(m.jb)])];
+  const nomesDe = (d) => partidas.filter((m) => m.data === d).flatMap((m) => [...arr(m.ja), ...arr(m.jb)]); // presença = jogou pelo menos uma partida
   ord.forEach((d) => nomesDe(d).forEach((n) => {
     const k0 = chave(n), k = canon(k0); if (!k) return;
     if (!exib.has(k) || k0 === k) exib.set(k, n);
